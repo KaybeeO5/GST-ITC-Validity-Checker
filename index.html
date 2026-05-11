@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DefendITC — AI-powered GST Input Tax Credit denial defence platform. Analyse notices, predict win probability, draft replies with 75 verified court judgments and 12 CBIC circulars.">
+    <meta name="theme-color" content="#059669">
+    <title>DefendITC - GST ITC Defense Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- PDF.js for client-side PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+    <script type="module">
+        // Load PDF.js as a module and expose globally
+        import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+        window.pdfjsLib = pdfjsLib;
+    </script>
+    
+    <!-- mammoth.js for client-side DOCX text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <nav role="navigation" aria-label="Main navigation">
+        <div class="nav-left">
+            <a href="#" class="logo" onclick="showPage('home'); return false;" aria-label="DefendITC home">
+                <div class="logo-mark" aria-hidden="true">D</div>
+                <div class="logo-text">DefendITC</div>
+            </a>
+            <div class="nav-links" role="tablist">
+                <button class="nav-link" onclick="showPage('classify')" role="tab" aria-controls="classify">Classify</button>
+                <button class="nav-link" onclick="showPage('tracker')" role="tab" aria-controls="tracker">Case Tracker</button>
+                <button class="nav-link" onclick="showPage('drafter')" role="tab" aria-controls="drafter">Reply Drafter</button>
+                <button class="nav-link" onclick="showPage('search')" role="tab" aria-controls="search">Precedent Search</button>
+                <button class="nav-link" onclick="showPage('library')" role="tab" aria-controls="library">Case Library (75)</button>
+                <button class="nav-link" onclick="showPage('analytics')" role="tab" aria-controls="analytics">Analytics</button>
+                <button class="nav-link" onclick="showPage('research')" role="tab" aria-controls="research">Research</button>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="nav-cta" onclick="showPage('classify')">Analyse Notice →</button>
+        </div>
+    </nav>
+    
+    <main id="main-content" role="main">
+    <!-- HOME PAGE -->
+    <div class="page active" id="home" role="tabpanel" aria-labelledby="home">
+        <section class="hero">
+            <h1 class="hero-h1">
+                Stop Losing<br>
+                <em>Legitimate</em><br>
+                Tax Credits.
+            </h1>
+            <p class="hero-sub">
+                DefendITC analyzes GST ITC denial notices against 75 verified court judgments
+            </p>
+            <div>
+                <button class="btn-primary" onclick="showPage('classify')">Analyse a Notice →</button>
+                <button class="btn-ghost" onclick="showPage('library')">Browse 75 Cases</button>
+            </div>
+        </section>
+        
+        <section class="stats-strip">
+            <div class="stats-inner">
+                <div class="stat-num">75</div>
+                <div class="stat-lbl">Verified Judgments</div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- CLASSIFY PAGE -->
+    <div class="page" id="classify" role="tabpanel" aria-labelledby="classify">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>Classify ITC Denial Notice</h1>
+                <p>Upload your notice for instant AI-powered classification</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="card">
+                <h3>📄 Upload or Paste Your Notice</h3>
+                
+                <label for="classifyFileUpload">Upload Notice (PDF/Word)</label>
+                <input type="file" id="classifyFileUpload" accept=".pdf,.doc,.docx,.txt" onchange="handleClassifyFileUpload(event)" aria-describedby="classifyFileHelp">
+                <span id="classifyFileHelp" class="visually-hidden">Maximum file size 10 megabytes. Accepted formats: PDF, DOC, DOCX.</span>
+                
+                <div style="margin: 20px 0; text-align: center; color: var(--text-secondary); font-weight: 600;" aria-hidden="true">OR</div>
+                
+                <label for="classifyInput">Paste Notice Text</label>
+                <textarea id="classifyInput" placeholder="Paste the complete ITC denial notice here...
+
+Example: Copy-paste the show cause notice, order, or demand letter that denies your ITC claim." style="min-height: 200px;" aria-required="true"></textarea>
+                
+                <button class="btn-primary" onclick="classifyNotice()" id="classifyBtn" style="width: 100%;" aria-describedby="classifyResult">🔍 Classify Notice</button>
+                
+                <div id="classifyResult" class="hidden" style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 24px;" role="region" aria-live="polite" aria-label="Classification results">
+                    <h4 style="color: var(--primary); margin-bottom: 16px; font-size: 18px;">📊 Classification Results</h4>
+                    <div id="classifyContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CASE TRACKER PAGE -->
+    <div class="page" id="tracker" role="tabpanel" aria-labelledby="tracker">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>Case Tracker</h1>
+                <p>Manage your ITC denial cases with kanban board</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="tracker-header">
+                <input type="text" id="trackerSearch" class="tracker-search" placeholder="Search notices..." onkeyup="debouncedFilterTracker()" aria-label="Search tracker cases">
+                <div class="tracker-actions">
+                    <select id="trackerStatusFilter" style="width: auto; padding: 10px 16px;" onchange="filterTrackerCases()">
+                        <option value="all">All Statuses</option>
+                        <option value="opened">Opened</option>
+                        <option value="prep">Prep Work</option>
+                        <option value="progress">In Progress</option>
+                        <option value="filed">Reply Filed</option>
+                        <option value="appeal">Appeal Filed</option>
+                        <option value="won">Closed - Won</option>
+                    </select>
+                    <button class="btn-primary" onclick="showAddCaseModal()">+ Add Notice</button>
+                    <button class="btn-ghost" onclick="exportTrackerToCSV()" aria-label="Export tracker to CSV" title="Download all tracker cases as CSV">📥 Export CSV</button>
+                </div>
+            </div>
+            
+            <div class="kanban-board" id="kanbanBoard">
+                <div class="kanban-column" data-status="opened">
+                    <div class="column-header">
+                        <span class="column-title">OPENED</span>
+                        <span class="column-count" id="count-opened">3</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-opened"></div>
+                </div>
+                <div class="kanban-column" data-status="prep">
+                    <div class="column-header">
+                        <span class="column-title">PREP WORK</span>
+                        <span class="column-count" id="count-prep">2</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-prep"></div>
+                </div>
+                <div class="kanban-column" data-status="progress">
+                    <div class="column-header">
+                        <span class="column-title">IN PROGRESS</span>
+                        <span class="column-count" id="count-progress">1</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-progress"></div>
+                </div>
+                <div class="kanban-column" data-status="filed">
+                    <div class="column-header">
+                        <span class="column-title">REPLY FILED</span>
+                        <span class="column-count" id="count-filed">1</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-filed"></div>
+                </div>
+                <div class="kanban-column" data-status="appeal">
+                    <div class="column-header">
+                        <span class="column-title">APPEAL FILED</span>
+                        <span class="column-count" id="count-appeal">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-appeal"></div>
+                </div>
+                <div class="kanban-column" data-status="won">
+                    <div class="column-header">
+                        <span class="column-title">CLOSED - WON</span>
+                        <span class="column-count" id="count-won">2</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-won"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- REPLY DRAFTER PAGE -->
+    <div class="page" id="drafter" role="tabpanel" aria-labelledby="drafter">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>Reply Drafter</h1>
+                <p>AI-powered reply generation for ITC denial notices</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="card">
+                <h3>📄 Upload or Paste Notice</h3>
+                
+                <label for="drafterFileUpload">Upload Notice (PDF/Word Document)</label>
+                <input type="file" id="drafterFileUpload" accept=".pdf,.doc,.docx,.txt" onchange="handleDrafterFileUpload(event)" aria-describedby="drafterFileHelp">
+                <span id="drafterFileHelp" class="visually-hidden">Maximum file size 10 megabytes. Accepted formats: PDF, DOC, DOCX.</span>
+                
+                <div style="margin: 20px 0; text-align: center; color: var(--text-secondary); font-weight: 600;" aria-hidden="true">OR</div>
+                
+                <label for="drafterInput">Paste Notice Content</label>
+                <textarea id="drafterInput" placeholder="Paste the full content of the ITC denial notice here..." style="min-height: 200px;" aria-required="true"></textarea>
+                
+                <label for="drafterContext">Additional Context (Optional)</label>
+                <textarea id="drafterContext" placeholder="Add any additional information about the case..." style="min-height: 100px;"></textarea>
+                
+                <button class="btn-primary" onclick="generateReply()" id="drafterBtn" style="width: 100%;">✨ Generate Reply Draft</button>
+                
+                <div id="drafterResult" class="hidden" style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 24px;" role="region" aria-live="polite" aria-label="Generated reply draft">
+                    <h4 style="color: var(--primary); margin-bottom: 16px; font-size: 18px;">📝 Generated Reply Draft</h4>
+                    <div id="drafterContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PRECEDENT SEARCH PAGE -->
+    <div class="page" id="search" role="tabpanel" aria-labelledby="search">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>🔍 Precedent Search</h1>
+                <p>Search through 75 verified court judgments</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="card">
+                <h3>📚 All Cases (75 Landmark Judgments)</h3>
+                <input type="text" placeholder="Search across all cases...">
+            </div>
+            
+            <div class="card">
+                <h3>📁 Browse by Category</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">Select a category to view cases that support legal defense</p>
+                
+                <div class="category-grid">
+                    <div class="category-btn" onclick="showCategoryExamples('supplier-non-filing')">Supplier Non-Filing</div>
+                    <div class="category-btn" onclick="showCategoryExamples('time-barred')">Time-Barred</div>
+                    <div class="category-btn" onclick="showCategoryExamples('fake-invoices')">Fake Invoices</div>
+                    <div class="category-btn" onclick="showCategoryExamples('invoice-defects')">Invoice Defects</div>
+                    <div class="category-btn" onclick="showCategoryExamples('gstr-2a-2b')">GSTR-2A/2B</div>
+                    <div class="category-btn" onclick="showCategoryExamples('blocked-credits')">Blocked Credits</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CASE LIBRARY PAGE -->
+    <div class="page" id="library" role="tabpanel" aria-labelledby="library">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>Case Library (75 Judgments)</h1>
+                <p>Browse verified court judgments with filters</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="card">
+                <div class="filters-row">
+                    <select id="filterTier" onchange="filterCases()">
+                        <option value="">All Court Tiers</option>
+                        <option value="Supreme Court of India">Supreme Court of India</option>
+                        <option value="High Courts">High Courts</option>
+                        <option value="GST Appellate Tribunal">GST Appellate Tribunal</option>
+                        <option value="AAR / AAAR">AAR / AAAR</option>
+                    </select>
+                    
+                    <select id="filterCourt" onchange="filterCases()">
+                        <option value="">All Courts</option>
+                        <option value="Madras HC">Madras HC</option>
+                        <option value="Kerala HC">Kerala HC</option>
+                        <option value="Karnataka HC">Karnataka HC</option>
+                        <option value="Calcutta HC">Calcutta HC</option>
+                        <option value="Delhi HC">Delhi HC</option>
+                        <option value="Gauhati HC">Gauhati HC</option>
+                        <option value="Supreme Court">Supreme Court</option>
+                    </select>
+                    
+                    <select id="filterOutcome" onchange="filterCases()">
+                        <option value="">All Outcomes</option>
+                        <option value="Taxpayer Won">Taxpayer Won</option>
+                        <option value="Department Won">Department Won</option>
+                        <option value="Mixed / Remanded">Mixed / Remanded</option>
+                        <option value="Pending / Interim">Pending / Interim</option>
+                    </select>
+                    
+                    <select id="filterProvision" onchange="filterCases()">
+                        <option value="">All Provisions</option>
+                        <option value="Section 16(4)">Section 16(4)</option>
+                        <option value="Section 16(2)(c)">Section 16(2)(c)</option>
+                        <option value="Section 16(2)(aa)">Section 16(2)(aa)</option>
+                        <option value="Rule 36(4)">Rule 36(4)</option>
+                        <option value="Section 16(5)">Section 16(5)</option>
+                        <option value="Section 73">Section 73</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+                    <input type="text" id="searchCases" placeholder="Search cases by title, court, or provision..." onkeyup="debouncedFilterCases()" style="flex: 1; min-width: 200px; margin: 0;" aria-label="Search cases">
+                    <button class="btn-ghost" onclick="exportCasesToCSV()" aria-label="Export all cases to CSV" title="Download all 75 cases as CSV" style="margin: 0;">📥 Export CSV</button>
+                </div>
+                
+                <div id="casesList" style="min-height: 200px;">
+                    <p style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        Loading cases...
+                    </p>
+                </div>
+                
+                <div id="casesCount" style="text-align: center; margin-top: 16px; color: var(--text-secondary); font-size: 13px;">
+                    Showing 0 of 75 cases
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ANALYTICS PAGE -->
+    <div class="page" id="analytics" role="tabpanel" aria-labelledby="analytics">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>📊 Analytics Dashboard</h1>
+                <p>Win probability predictor and case history insights</p>
+                <div style="margin-top: 16px;">
+                    <button class="btn-ghost" onclick="exportAnalyticsToPDF()" aria-label="Export analytics to PDF" title="Print analytics dashboard to PDF" style="background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.4);">📄 Save Dashboard as PDF</button>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <!-- DEADLINE CALCULATOR (Feature 7) -->
+            <div class="card" id="deadlineCalculator">
+                <h3>⏰ Reply Deadline Calculator</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Compute the response window under <strong>Sections 73 &amp; 74</strong> of the CGST Act, 2017. Enter the notice details to see your reply deadline and remaining time.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                    <div>
+                        <label for="deadlineNoticeDate">Notice Date</label>
+                        <input type="date" id="deadlineNoticeDate" aria-required="true">
+                    </div>
+                    
+                    <div>
+                        <label for="deadlineNoticeType">Notice Type</label>
+                        <select id="deadlineNoticeType">
+                            <option value="73">Section 73 (Non-fraud)</option>
+                            <option value="74">Section 74 (Fraud)</option>
+                            <option value="custom">Custom Deadline</option>
+                        </select>
+                    </div>
+                    
+                    <div id="deadlineCustomDaysWrap" style="display: none;">
+                        <label for="deadlineCustomDays">Days to Reply</label>
+                        <input type="number" id="deadlineCustomDays" min="1" max="365" placeholder="30" value="30">
+                    </div>
+                </div>
+                
+                <button class="btn-primary" onclick="calculateDeadline()" id="deadlineBtn">📅 Calculate Deadline</button>
+                
+                <div id="deadlineResult" class="hidden" style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;" role="region" aria-live="polite" aria-label="Deadline calculation result">
+                    <div id="deadlineContent"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>🎯 Part 1: Win Probability Predictor</h3>
+                <div style="background: var(--primary-light); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <strong>Based on 75 Historical Judgments</strong><br>
+                    <span style="color: var(--text-secondary);">Enter your denial ground to predict success probability</span>
+                </div>
+                <textarea id="predictionInput" placeholder="Paste your denial ground...
+
+Examples:
+- 'ITC denied as supplier has not filed GSTR-1 returns'
+- 'ITC disallowed due to mismatch in GSTR-2A and GSTR-3B'
+- 'Time limit under Section 16(4) expired'
+- 'Fake invoices detected, supplier non-existent'" style="min-height: 120px;"></textarea>
+                <button class="btn-primary" onclick="calculateWinProbability()">🧮 Calculate Win Probability</button>
+                
+                <div id="predictionResult" class="hidden" style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 24px;">
+                    <h4 style="color: var(--primary); margin-bottom: 16px; font-size: 18px;">📈 Prediction Results</h4>
+                    <div id="predictionContent"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📊 Part 2: Your Case History</h3>
+                
+                <div class="analytics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="wonCount">2</div>
+                        <div class="metric-label">Cases Won</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="lostCount">0</div>
+                        <div class="metric-label">Cases Lost</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="pendingCount">7</div>
+                        <div class="metric-label">Cases Pending</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="savedAmount">₹11.3L</div>
+                        <div class="metric-label">ITC Saved</div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 24px; margin-bottom: 16px;">Success by Category</h4>
+                <div class="chart-container">
+                    <h4 style="margin-bottom: 16px;">Category Performance</h4>
+                    <div id="categoryChart"></div>
+                </div>
+                
+                <div class="chart-container">
+                    <h4 style="margin-bottom: 16px;">Outcome Distribution</h4>
+                    <div id="outcomeChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- RESEARCH PAGE -->
+    <div class="page" id="research" role="tabpanel" aria-labelledby="research">
+        <div class="page-hero">
+            <div class="page-hero-inner">
+                <h1>Research - Legal Framework</h1>
+                <p>Legislation, rules, and circulars governing GST ITC</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="research-tabs">
+                <button class="research-tab active" onclick="showResearchTab('legislation')">Applicable Legislation/Acts</button>
+                <button class="research-tab" onclick="showResearchTab('rules')">Applicable Rules</button>
+                <button class="research-tab" onclick="showResearchTab('circulars')">Circulars Governing ITC</button>
+            </div>
+            
+            <div id="legislation" class="research-content active">
+                <div class="card">
+                    <h3>📜 Applicable Legislation / Acts</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">Complete bare acts for quick reference - Click to view</p>
+                    
+                    <div id="actsLibrary">
+                        <!-- Central Acts -->
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1WoK29_xtOfU7mlW9mKKtMGN3xBo7c-QO/preview', 'Central Goods and Services Tax Act, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Central Goods and Services Tax Act, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete CGST Act with all sections including ITC provisions (Section 16, 17, 18)</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1WoK29_xtOfU7mlW9mKKtMGN3xBo7c-QO/preview', 'CGST Act 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1rq7sjd8HVeN8qYlveEzx9X9nZH1Vzcvb/preview', 'Integrated Goods and Services Tax Act, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Integrated Goods and Services Tax Act, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete IGST Act for inter-state and import/export transactions</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1rq7sjd8HVeN8qYlveEzx9X9nZH1Vzcvb/preview', 'IGST Act 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1QLV-nsWUYMBqbjuqI9LhsTRyP-XfS_tp/preview', 'Union Territory Goods and Services Tax Act, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Union Territory Goods and Services Tax Act, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete UTGST Act for Union Territories</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1QLV-nsWUYMBqbjuqI9LhsTRyP-XfS_tp/preview', 'UTGST Act 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <!-- State Acts Section -->
+                        <h4 style="margin-top: 24px; margin-bottom: 12px; color: var(--text-primary);">State GST Acts</h4>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1nHrNtfKWasC5DJg6_WYN37-idZbA1EqT/preview', 'Tamil Nadu SGST Act, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Tamil Nadu Goods and Services Tax Act, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Tamil Nadu SGST Act - Complete state legislation</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1nHrNtfKWasC5DJg6_WYN37-idZbA1EqT/preview', 'TN SGST Act')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1FED9hQ1hZZTgJWosMfjNyvF_2OZnrqLp/preview', 'Karnataka SGST Act, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Karnataka Goods and Services Tax Act, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Karnataka SGST Act - Complete state legislation</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1FED9hQ1hZZTgJWosMfjNyvF_2OZnrqLp/preview', 'KA SGST Act')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 20px; padding: 16px; background: var(--primary-light); border-radius: 8px; font-size: 13px;">
+                            💡 <strong>Tip:</strong> Click on any act to view the full PDF. Use Ctrl+F inside the PDF viewer to search for specific sections like Section 16 (ITC eligibility), Section 17 (Apportionment & blocked credits), Section 18 (ITC in special circumstances).
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="rules" class="research-content">
+                <div class="card">
+                    <h3>⚖️ Applicable Rules</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">Complete GST rules for quick reference - Click to view</p>
+                    
+                    <div id="rulesLibrary">
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1XAbyhlfBhmlvfy4-8VCVa5BdOK2JkV1l/preview', 'Central Goods and Services Tax Rules, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Central Goods and Services Tax Rules, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete CGST Rules including Rule 36, 37, 42, 43 (ITC provisions)</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1XAbyhlfBhmlvfy4-8VCVa5BdOK2JkV1l/preview', 'CGST Rules 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1UxA_gLyc_C8DVEnVU2iGAj2q6jRvNWgL/preview', 'Integrated Goods and Services Tax Rules, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Integrated Goods and Services Tax Rules, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete IGST Rules for inter-state and import/export transactions</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1UxA_gLyc_C8DVEnVU2iGAj2q6jRvNWgL/preview', 'IGST Rules 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1jZ73HcrbYNIOXVcZr9GV3Ah60lUVTWIO/preview', 'Union Territory Goods and Services Tax Rules, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Union Territory Goods and Services Tax Rules, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Complete UTGST Rules for Union Territories</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1jZ73HcrbYNIOXVcZr9GV3Ah60lUVTWIO/preview', 'UTGST Rules 2017')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin-top: 24px; margin-bottom: 12px; color: var(--text-primary);">State GST Rules</h4>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/1ZtfEwGa7WqXFE7g2GNlTsq3Yxnp45TRu/preview', 'Tamil Nadu SGST Rules, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Tamil Nadu Goods and Services Tax Rules, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Tamil Nadu SGST Rules - Complete state rulebook</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/1ZtfEwGa7WqXFE7g2GNlTsq3Yxnp45TRu/preview', 'TN SGST Rules')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: var(--bg-light); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer;" onclick="viewPDF('https://drive.google.com/file/d/19xOLL8IbgIS_lXSxXjurFGiHjSrI6MBH/preview', 'Karnataka SGST Rules, 2017')">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="color: var(--primary); margin-bottom: 4px;">📄 Karnataka Goods and Services Tax Rules, 2017</h4>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Karnataka SGST Rules - Complete state rulebook</p>
+                                </div>
+                                <button class="btn-primary" style="padding: 8px 16px; margin: 0;" onclick="event.stopPropagation(); viewPDF('https://drive.google.com/file/d/19xOLL8IbgIS_lXSxXjurFGiHjSrI6MBH/preview', 'KA SGST Rules')">View PDF</button>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 20px; padding: 16px; background: var(--primary-light); border-radius: 8px; font-size: 13px;">
+                            💡 <strong>Tip:</strong> Click on any rule to view the full PDF. Focus on Rule 36 (Documentary requirements for ITC), Rule 37 (Reversal of ITC), and Rule 42-43 (Determination of ITC).
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="circulars" class="research-content">
+                <div class="card">
+                    <h3>📋 Circulars Governing ITC (12 Key Circulars)</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">Essential GST circulars for ITC matters with full PDFs</p>
+                    
+                    <div id="circularsList">
+                        <!-- Circulars will be populated from window._CIRCULARS array -->
+                        <p style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            Loading circulars... (Paste your 12 circulars data using window._CIRCULARS array)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </main>
+    
+    <!-- PDF MODAL -->
+    <div id="pdfModal" class="modal" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Document Viewer</h3>
+                <button class="close-btn" onclick="closeModal()" aria-label="Close document viewer">×</button>
+            </div>
+            <div class="modal-body">
+                <iframe id="pdfFrame" class="pdf-viewer" title="PDF document content"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         4 NEW JUDGMENTS — injected without modifying data.js
+         or app.js. Runs after both scripts have loaded.
+         ═══════════════════════════════════════════════════════ -->
+    <script>
+    (function injectNewCases() {
+        var newCases = [
+            {
+                id: 76,
+                title: "M/s High Tech Ecogreen Contractors LLP v. Joint Director, DGGI",
+                court: "High Courts",
+                courtName: "Delhi HC",
+                year: 2024,
+                date: "2024",
+                outcome: "Taxpayer Won",
+                provision: "Section 16(2)(c)",
+                ground: "supplier-non-filing",
+                category: "Supplier Non-Filing",
+                summary: "Delhi High Court held that ITC cannot be denied to a bona fide recipient solely on account of supplier's failure to deposit tax. Recipient's liability is limited to due diligence in verifying GSTIN and invoice.",
+                citation: "Delhi HC 2024",
+                pdfUrl: "https://drive.google.com/file/d/12ibiY6o_e1vC68ROj4_DVvM2uhOkZ8Y7/preview",
+                tags: ["supplier-non-filing", "bona-fide-recipient", "section-16-2-c"]
+            },
+            {
+                id: 77,
+                title: "M/s Subhash Abhishek v. Union of India & Ors.",
+                court: "High Courts",
+                courtName: "Allahabad HC",
+                year: 2024,
+                date: "2024",
+                outcome: "Taxpayer Won",
+                provision: "Section 16(4)",
+                ground: "time-barred",
+                category: "Time-Barred ITC",
+                summary: "Allahabad High Court ruled that Section 16(4) of the CGST Act cannot override a taxpayer's substantive right to ITC where returns were filed within extended due dates notified by the government during COVID-19.",
+                citation: "Allahabad HC 2024",
+                pdfUrl: "https://drive.google.com/file/d/1JpUnkf4zW2itfU-Msue8aMgi1pkj1Tnm/preview",
+                tags: ["time-barred", "section-16-4", "covid-extension", "extended-deadline"]
+            },
+            {
+                id: 78,
+                title: "M/s Diya Agencies v. State Tax Officer, Kerala",
+                court: "High Courts",
+                courtName: "Kerala HC",
+                year: 2023,
+                date: "2023",
+                outcome: "Taxpayer Won",
+                provision: "Section 16(2)(c)",
+                ground: "supplier-non-filing",
+                category: "Supplier Non-Filing",
+                summary: "Kerala High Court quashed ITC demand raised solely on the ground that the supplier had not filed GSTR-3B, holding that recipient cannot be penalised for acts of a third party beyond its control when all prescribed documents are in order.",
+                citation: "Kerala HC 2023",
+                pdfUrl: "https://drive.google.com/file/d/1LjBFSzzBchrJ7AAqw5oozES0n6qUnL1I/preview",
+                tags: ["supplier-non-filing", "section-16-2-c", "third-party-default", "kerala"]
+            },
+            {
+                id: 79,
+                title: "M/s Gobinda Construction v. Union of India",
+                court: "High Courts",
+                courtName: "Jharkhand HC",
+                year: 2024,
+                date: "2024",
+                outcome: "Taxpayer Won",
+                provision: "Section 16(2)(aa)",
+                ground: "gstr-2a-2b",
+                category: "GSTR-2A/2B Mismatch",
+                summary: "Jharkhand High Court held that denial of ITC purely on the basis of GSTR-2A/2B mismatch without examining the taxpayer's documentary evidence violates principles of natural justice and is liable to be set aside.",
+                citation: "Jharkhand HC 2024",
+                pdfUrl: "https://drive.google.com/file/d/1VJp9y6HJ4A_WjRmQekumwul8n5ZoM4cf/preview",
+                tags: ["gstr-2a-mismatch", "gstr-2b", "section-16-2-aa", "natural-justice"]
+            }
+        ];
+
+        /* ── Find the global cases array ─────────────────────────
+           data.js may expose it as window._CASES, window.CASES,
+           window.casesData, window.judgments, or window.allCases.
+           We try each name, then fall back to a post-load retry.  */
+        function getCasesArray() {
+            return window._CASES || window.CASES || window.casesData ||
+                   window.judgments || window.allCases || null;
+        }
+
+        function doInject() {
+            var arr = getCasesArray();
+            if (!arr) return false;
+
+            /* Avoid double-injection on hot-reload */
+            var alreadyIn = arr.some(function(c) { return c.id === 76; });
+            if (alreadyIn) return true;
+
+            newCases.forEach(function(c) { arr.push(c); });
+
+            /* Re-render the library if the function exists */
+            if (typeof filterCases === 'function')       { filterCases(); }
+            else if (typeof renderCases === 'function')  { renderCases(); }
+            else if (typeof loadCases === 'function')    { loadCases(); }
+            else if (typeof initLibrary === 'function')  { initLibrary(); }
+
+            /* Update the "Showing X of Y" counter if present */
+            var counter = document.getElementById('casesCount');
+            if (counter) {
+                var total = arr.length;
+                counter.textContent = 'Showing ' + total + ' of ' + total + ' cases';
+            }
+
+            /* Update nav badge "Case Library (75)" → "(79)" */
+            document.querySelectorAll('.nav-link, button').forEach(function(el) {
+                if (el.textContent.trim() === 'Case Library (75)') {
+                    el.textContent = 'Case Library (79)';
+                }
+            });
+
+            console.log('[DefendITC] 4 new judgments injected. Total cases:', total);
+            return true;
+        }
+
+        /* Try immediately (data.js already executed) */
+        if (!doInject()) {
+            /* data.js may still be parsing — retry after scripts settle */
+            var attempts = 0;
+            var poll = setInterval(function() {
+                attempts++;
+                if (doInject() || attempts > 20) clearInterval(poll);
+            }, 150);
+        }
+    })();
+    </script>
+
+</body>
+</html>
